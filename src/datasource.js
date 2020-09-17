@@ -9,7 +9,7 @@ export default class DynatraceDatasource {
     this.id = instanceSettings.jsonData.id;
     this.token = instanceSettings.jsonData.token;
 
-    this.url = `${instanceSettings.url}/e/${this.id}/api/v1/timeseries`;
+    this.Url = `https://${this.id}.live.dynatrace.com/api/v2`;
 
     this.headers = { Authorization: `Api-Token ${this.token}` };
 
@@ -17,14 +17,37 @@ export default class DynatraceDatasource {
     this.templateSrv = templateSrv;
   }
 
-  doRequest(options) {
-    options.url = this.url;
+  doMetricRequest(options) {
+    options.url = `${this.Url}/metrics`;
+    options.headers = this.headers;
+    options.method = 'GET';
+    return this.backendSrv.datasourceRequest(options);
+  }
+
+  doMetricDetailRequest(metric) {
+    return this.backendSrv.datasourceRequest({
+      url: `${this.Url}/metrics/${metric}`,
+      method: 'GET',
+      headers: this.headers,
+    });
+  }
+
+  doMetricQueryRequest(options) {
+    options.url = `${this.Url}/metrics/query`;
+    options.method = 'GET';
+    options.headers = this.headers;
+    return this.backendSrv.datasourceRequest(options);
+  }
+
+  doEntityRequest(options) {
+    options.url = `${this.Url}/entities`;
+    options.method = 'GET';
     options.headers = this.headers;
     return this.backendSrv.datasourceRequest(options);
   }
 
   testDatasource() {
-    return this.doRequest({}).then(() => ({
+    return this.doMetricRequest({}).then(() => ({
       status: 'success', message: 'Data source is working', title: 'Success',
     })).catch(() => ({
       status: 'error', message: 'Datasource test failed', title: 'Error',
@@ -39,15 +62,15 @@ export default class DynatraceDatasource {
 
     Object.keys(targets).forEach((t) => {
       const opts = {
-        method: 'POST',
-        data: {
+        params: {
           aggregationType: targets[t].aggregation,
-          endTimestamp: toTs,
-          startTimestamp: fromTs,
-          timeseriesId: targets[t].target,
+          pageSize: 5000,
+          metricSelector: targets[t].target,
+          from: fromTs,
+          to: toTs,
         },
       };
-      requests[t] = this.doRequest(opts);
+      requests[t] = this.doMetricQueryRequest(opts);
     });
 
     // TODO: this throws an error when one of the requests fails
@@ -68,45 +91,34 @@ export default class DynatraceDatasource {
     }));
   }
 
-  static processDatapoints(result) {
-    const r = [];
-
-    Object.keys(result.dataPoints).forEach((tsid) => {
-      let label = '';
-      const dp = result.dataPoints[tsid].map(x => [x[1], x[0]]);
-      const identifiers = tsid.split(', ');
-
-      Object.keys(identifiers).forEach((id) => {
-        label += `${result.entities[identifiers[id]]} `;
-      });
-
-      r.push({
-        target: label,
-        datapoints: dp,
-      });
-    });
-
-    return r;
+  static findEntityName(entities, name) {
+    return entities.filter(entity => entity.displayName === name).displayName;
   }
 
-  getEntities(target, dimension) {
-    const options = {
-      method: 'POST',
-      data: {
-        aggregationType: 'AVG',
-        relativeTime: 'hour',
-        timeseriesId: target,
-      },
-    };
+  static processDatapoints(results) {
+    const r = [];
+    for (let i = 0; i < results.length; i += 1) {
+      const result = results[i];
+      for (let d = 0; d < result.data.length; d += 1) {
+        const dataValue = result.data[d];
+        const dp = [];
+        let label = '';
 
-    return this.doRequest(options).then((res) => {
-      const entities = _.pickBy(res.data.result.entities, key =>
-        (_.startsWith(key, dimension)));
+        for (let t = 0; t < dataValue.timestamps.length; t += 1) {
+          dp.push([dataValue.values[t], dataValue.timestamps[t]]);
+        }
 
-      return _.map(entities, (d, i) => (
-        { text: d, value: i }
-      ));
-    });
+        for (let l = 0; l < dataValue.dimensions.length; l += 1) {
+          label += `${dataValue.dimensions[l]} `;
+        }
+
+        r.push({
+          target: label,
+          datapoints: dp,
+        });
+      }
+    }
+    return r;
   }
 
   metricFindQuery() {
@@ -114,26 +126,23 @@ export default class DynatraceDatasource {
     //     target: this.templateSrv.replace(query, null, 'regex')
     // };
 
-    return this.doRequest({
-      method: 'GET',
-    }).then(DynatraceDatasource.getTsNames);
+    return this.doMetricRequest({
+      params: {
+        pageSize: 5000,
+      },
+    }).then(DynatraceDatasource.getMetricNames);
   }
 
   metricFindDetails(query) {
-    // TODO: Don't do a new request but take results from findquery
-    return this.doRequest({
-      method: 'GET',
-    }).then((res) => {
-      const entry = _.filter(res.data, item =>
-        (item.timeseriesId === query))[0];
-
+    return this.doMetricDetailRequest(query).then((res) => {
+      const entry = res;
       return entry;
     }).catch(() => (false));
   }
 
-  static getTsNames(result) {
-    return _.map(result.data, d => (
-      { text: d.timeseriesId, value: d.timeseriesId }));
+  static getMetricNames(result) {
+    return _.map(result.data.metrics, d => (
+      { text: `${d.displayName} - ${d.metricId}`, value: d.metricId }));
   }
 }
 

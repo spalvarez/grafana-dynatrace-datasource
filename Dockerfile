@@ -2,6 +2,7 @@ FROM grafana/grafana:latest
 
 # Add dynatrace plugin source
 ADD . /var/lib/grafana/plugins/grafana-dynatrace-datasource
+ADD datasource.yaml /etc/grafana/provisioning/datasources
 
 USER root
 

@@ -18,6 +18,11 @@ More information on the [Dynatrace API](https://www.dynatrace.com/support/help/d
 
 Checkout in `grafana/data/plugins`, run the commands listed in "Dev setup" and restart Grafana.
 
+### Create plugin manifest
+Copy datasource-example.yaml to datasource.yaml.
+`cp datasource-example.yam; datasource.yaml`
+
+Enter values in datasource.yaml for your Dynatrace tenant and API key
 
 ### Dev setup
 

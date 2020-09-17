@@ -24,7 +24,7 @@ export default class DynatraceDatasourceQueryCtrl extends QueryCtrl {
 
   updateMetricDetails(query) {
     this.datasource.metricFindDetails(query).then((res) => {
-      this.target.detail = res;
+      this.target.detail = res.data;
     });
   }
 

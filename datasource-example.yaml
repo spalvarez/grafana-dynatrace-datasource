@@ -1,0 +1,12 @@
+# config file version
+apiVersion: 1
+
+datasources:
+  - name: Dynatrace
+    type: piotr1212-dynatrace-datasource
+    access: proxy
+    url: https://<your id>.live.dynatrace.com
+    jsonData:
+      id: <your id>
+      token: <api token>
+

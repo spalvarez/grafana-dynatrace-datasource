@@ -51,7 +51,7 @@
     "grunt-jslint": "^1.1.15",
     "lodash": "^4.17.4",
     "mocha": "^5.0.0",
-    "yarn": "^1.3.2"
+    "yarn": "^1.22.5"
   },
   "homepage": "https://github.com/piotr1212/grafana-dynatrace-datasource"
 }
