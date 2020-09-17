@@ -46,6 +46,6 @@ docker run -d -p 3000:3000 grafana:latest-with-plugins
 
 ### Changelog
 
-1.0.1
+2.0.0
 - Initial release
 - Update Dockerfile to build with Grafana v7.0+
