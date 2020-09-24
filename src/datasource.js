@@ -113,8 +113,8 @@ export default class DynatraceDatasource {
         }
 
         r.push({
-          //TODO: Label needs to be correlated to displayName from
-          //the entities API, this is just the entityID
+          /* TODO: Label needs to be correlated to displayName from
+             the entities API, this is just the entityID */
           target: label,
           datapoints: dp,
         });
